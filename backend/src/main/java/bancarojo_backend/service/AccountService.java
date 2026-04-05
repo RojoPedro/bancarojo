@@ -12,12 +12,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import bancarojo_backend.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
     public Optional<Account> findById(UUID id) {
         return accountRepository.findById(id);
@@ -77,5 +79,34 @@ public class AccountService {
             account.setStatus(Account.AccountStatus.CLOSED);
             accountRepository.save(account);
         });
+    }
+
+    @Transactional
+    public Account create(UUID userId, Account.AccountType accountType) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Utente non trovato con id: " + userId));
+
+        Account account = Account.builder()
+                .user(user)
+                .iban(generateIban())
+                .accountType(accountType)
+                .balance(BigDecimal.ZERO)
+                .currency("EUR")
+                .status(Account.AccountStatus.ACTIVE)
+                .build();
+
+        return accountRepository.save(account);
+    }
+
+    private String generateIban() {
+        // IBAN italiano fittizio per scopi dimostrativi
+        String randomPart = UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 12)
+                .toUpperCase();
+        return "IT60X054" + randomPart;
     }
 }
